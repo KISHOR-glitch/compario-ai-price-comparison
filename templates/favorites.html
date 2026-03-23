@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorites - Compario AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem("user_id")) {
+            window.location.href = "/";
+        }
+    </script>
+
+    <div class="container">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">Compario AI</a>
+                <div class="navbar-nav">
+                    <a href="/" class="btn">Home</a>
+                    <a href="/cart-page" class="btn">Cart</a>
+                    <a href="/favorites-page" class="btn">Favorites</a>
+                    <a href="/history-page" class="btn">History</a>
+                    <button onclick="logout()" class="btn btn-logout">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="page-header">
+            <h1 class="page-title">Your Favorites</h1>
+            <p class="page-subtitle">Products you've saved for later</p>
+        </div>
+
+        <div id="favoritesList"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        const userId = localStorage.getItem("user_id");
+        const favoritesContainer = document.getElementById("favoritesList");
+
+        function logout() {
+            fetch("/logout", { method: "POST" })
+                .then(() => {
+                    localStorage.removeItem("user_id");
+                    window.location.href = "/";
+                });
+        }
+
+        function loadFavorites() {
+            fetch(`/favorite/${userId}`)
+                .then(res => res.json())
+                .then(items => {
+                    if (items.length === 0) {
+                        favoritesContainer.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">❤️</div>
+                                <div class="empty-state-text">No favorites yet</div>
+                                <div class="empty-state-subtext">Start adding products to your favorites</div>
+                                <a href="/" class="btn btn-primary" style="margin-top: 24px;">Browse Products</a>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    favoritesContainer.innerHTML = '';
+                    items.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'product-card';
+                        card.innerHTML = `
+                            <div class="product-site">${item.site}</div>
+                            <div class="product-title">${item.title}</div>
+                            <div class="product-price">${formatPrice(item.price)}</div>
+                            <div class="product-actions">
+                                <a href="${item.link}" target="_blank" class="btn btn-primary btn-sm">
+                                    View Product
+                                </a>
+                                <button onclick="deleteFavorite(${item.id})" class="btn btn-secondary btn-sm">
+                                    Remove
+                                </button>
+                            </div>
+                        `;
+                        favoritesContainer.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    showAlert('Failed to load favorites', 'error');
+                    favoritesContainer.innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load favorites</div></div>';
+                });
+        }
+
+        function deleteFavorite(id) {
+            if (!confirm('Are you sure you want to remove this from your favorites?')) {
+                return;
+            }
+
+            fetch(`/favorite/delete/${id}`, { method: "DELETE" })
+                .then(res => res.json())
+                .then(data => {
+                    showAlert('Removed from favorites', 'success');
+                    loadFavorites();
+                })
+                .catch(error => {
+                    showAlert('Failed to remove favorite', 'error');
+                });
+        }
+
+        loadFavorites();
+    </script>
+</body>
+</html>

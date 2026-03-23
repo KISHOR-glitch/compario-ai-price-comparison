@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search History - Compario AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem("user_id")) {
+            window.location.href = "/";
+        }
+    </script>
+
+    <div class="container">
+        <nav class="navbar">
+            <div class="navbar-content">
+                <a href="/" class="navbar-brand">Compario AI</a>
+                <div class="navbar-nav">
+                    <a href="/" class="btn">Home</a>
+                    <a href="/cart-page" class="btn">Cart</a>
+                    <a href="/favorites-page" class="btn">Favorites</a>
+                    <a href="/history-page" class="btn">History</a>
+                    <button onclick="logout()" class="btn btn-logout">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="page-header">
+            <h1 class="page-title">Search History</h1>
+            <p class="page-subtitle">Your recent product searches and comparisons</p>
+        </div>
+
+        <div id="historyList"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        const userId = localStorage.getItem("user_id");
+        const historyContainer = document.getElementById("historyList");
+
+        function logout() {
+            fetch("/logout", { method: "POST" })
+                .then(() => {
+                    localStorage.removeItem("user_id");
+                    window.location.href = "/";
+                });
+        }
+
+        function loadHistory() {
+            fetch(`/history/${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        historyContainer.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <div class="empty-state-text">No search history yet</div>
+                                <div class="empty-state-subtext">Start searching for products to see your history here</div>
+                                <a href="/" class="btn btn-primary" style="margin-top: 24px;">Start Searching</a>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    historyContainer.innerHTML = '';
+                    data.forEach(history => {
+                        const card = document.createElement('div');
+                        card.className = 'history-card';
+                        card.innerHTML = `
+                            <div class="history-meta">
+                                <div>
+                                    <div class="history-label">Search Query</div>
+                                    <div class="history-value">${history.query || 'N/A'}</div>
+                                </div>
+                                <div class="history-timestamp">${formatDate(history.timestamp)}</div>
+                            </div>
+                            <div class="history-products">
+                                ${history.products && history.products.length > 0 ? history.products.map(product => `
+                                    <div class='product-card'>
+                                        <img src='${product.image || "https://via.placeholder.com/80x80?text=No+Image"}' alt='Product Image' class='product-image' />
+                                        <div class='product-info'>
+                                            <div class='product-title'>${truncateText(product.title, 40)}</div>
+                                            <div class='product-price'>${product.price || "No price"}</div>
+                                            <div class='product-site'>${product.site || ""}</div>
+                                            <a href='${product.link}' target='_blank' class='btn btn-primary'>View Product</a>
+                                            <button class='btn btn-danger' onclick='removeHistory(${JSON.stringify(history.query)})'>Remove</button>
+                                        </div>
+                                    </div>
+                                `).join('') : `<div class='empty-state'>No products found</div>`}
+                            </div>
+                        `;
+                        historyContainer.appendChild(card);
+                    });
+                    // Helper for truncating text
+                    function truncateText(text, maxLength) {
+                        if (!text) return '';
+                        return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+                    }
+                    // Remove history stub (implement backend if needed)
+                    window.removeHistory = function(query) {
+                        alert('Remove history for: ' + query);
+                    }
+                })
+                .catch(error => {
+                    showAlert('Failed to load history', 'error');
+                    historyContainer.innerHTML = '<div class="empty-state"><div class="empty-state-text">Failed to load history</div></div>';
+                });
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>

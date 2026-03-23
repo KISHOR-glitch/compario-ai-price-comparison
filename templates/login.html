@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Compario AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-title">🔐 Welcome Back</h1>
+                <p class="auth-subtitle">Sign in to continue to Compario AI</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>or</span>
+            </div>
+
+            <div class="auth-header">
+                <h2 class="auth-title" style="font-size: 22px;">Create Account</h2>
+                <p class="auth-subtitle">New to Compario AI? Sign up below</p>
+            </div>
+
+            <form id="signupForm">
+                <div class="form-group">
+                    <label class="form-label" for="name">Full Name</label>
+                    <input type="text" id="name" class="form-input" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email2">Email Address</label>
+                    <input type="email" id="email2" class="form-input" placeholder="Enter your email" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password2">Password</label>
+                    <input type="password" id="password2" class="form-input" placeholder="Create a password" required>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="width: 100%;">
+                    Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            setLoading(submitBtn, true);
+
+            try {
+                const res = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: document.getElementById("email").value,
+                        password: document.getElementById("password").value
+                    })
+                });
+
+                const data = await res.json();
+                
+                if (data.user_id) {
+                    localStorage.setItem("user_id", data.user_id);
+                    showAlert("Login successful! Redirecting...", "success");
+                    setTimeout(() => {
+                        window.location.href = "/";
+                    }, 1000);
+                } else {
+                    showAlert(data.error || "Login failed", "error");
+                }
+            } catch (error) {
+                showAlert("An error occurred. Please try again.", "error");
+            } finally {
+                setLoading(submitBtn, false);
+            }
+        });
+
+        document.getElementById("signupForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            setLoading(submitBtn, true);
+
+            try {
+                const res = await fetch("/signup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: document.getElementById("name").value,
+                        email: document.getElementById("email2").value,
+                        password: document.getElementById("password2").value
+                    })
+                });
+
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showAlert(data.message || "Account created successfully!", "success");
+                    e.target.reset();
+                } else {
+                    showAlert(data.error || "Signup failed", "error");
+                }
+            } catch (error) {
+                showAlert("An error occurred. Please try again.", "error");
+            } finally {
+                setLoading(submitBtn, false);
+            }
+        });
+    </script>
+</body>
+</html>
